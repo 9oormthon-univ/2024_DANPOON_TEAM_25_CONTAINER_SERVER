@@ -33,7 +33,7 @@ pipeline {
                     // Docker Hub 로그인을 위한 크리덴셜 사용
                     withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
                         sh '''
-                            echo $DOCKER_PASSWORD | sudo docker login -u $DOCKER_USERNAME --password-stdin
+                            echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
                             docker push $DOCKER_IMAGE:$DOCKER_TAG
                             docker rmi $DOCKER_IMAGE:$DOCKER_TAG
                         '''
