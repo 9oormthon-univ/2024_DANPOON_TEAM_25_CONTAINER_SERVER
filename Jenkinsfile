@@ -21,7 +21,7 @@ pipeline {
                 script {
                     // Jenkins 사용자에게 sudo 권한을 부여하여 Docker 커맨드 실행
                     sh '''
-                        sudo docker build -t $DOCKER_IMAGE:$DOCKER_TAG .
+                        docker build -t $DOCKER_IMAGE:$DOCKER_TAG .
                     '''
                 }
             }
@@ -34,8 +34,8 @@ pipeline {
                     withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
                         sh '''
                             echo $DOCKER_PASSWORD | sudo docker login -u $DOCKER_USERNAME --password-stdin
-                            sudo docker push $DOCKER_IMAGE:$DOCKER_TAG
-                            sudo docker rmi $DOCKER_IMAGE:$DOCKER_TAG
+                            docker push $DOCKER_IMAGE:$DOCKER_TAG
+                            docker rmi $DOCKER_IMAGE:$DOCKER_TAG
                         '''
                     }
                 }
@@ -52,7 +52,7 @@ pipeline {
         }
         always {
             // 클린업 작업
-            sh 'sudo docker logout'
+            sh 'docker logout'
         }
     }
 }
