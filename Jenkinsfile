@@ -1,45 +1,58 @@
 pipeline {
     agent any
-
+    
     environment {
         DOCKER_IMAGE = "milkymilky0116/flake-ide-container-server"
         DOCKER_TAG = "latest"
+        // Docker Hub 크리덴셜 ID를 설정합니다
+        DOCKER_CREDENTIALS_ID = 'jenkins-credentials'
     }
-
+    
     stages {
         stage('Clone Repository') {
             steps {
-                // Git 리포지토리를 클론
-                git url: 'https://github.com/9oormthon-univ/2024_DANPOON_TEAM_25_CONTAINER_SERVER.git', branch: 'dev'
+                git branch: 'dev',
+                    url: 'https://github.com/9oormthon-univ/2024_DANPOON_TEAM_25_CONTAINER_SERVER.git'
             }
         }
-
+        
         stage('Build Docker Image') {
             steps {
-                // Docker 이미지를 빌드
                 script {
-                    docker.build("${DOCKER_IMAGE}:${DOCKER_TAG}")
+                    // Jenkins 사용자에게 sudo 권한을 부여하여 Docker 커맨드 실행
+                    sh '''
+                        sudo docker build -t $DOCKER_IMAGE:$DOCKER_TAG .
+                    '''
                 }
             }
-        } 
-
+        }
+        
         stage('Push Docker Image') {
             steps {
                 script {
-                    docker.withRegistry('https://registry.hub.docker.com', 'dockerhub') {
-                        docker.image("${DOCKER_IMAGE}:${DOCKER_TAG}").push()
+                    // Docker Hub 로그인을 위한 크리덴셜 사용
+                    withCredentials([usernamePassword(credentialsId: DOCKER_CREDENTIALS_ID, passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
+                        sh '''
+                            echo $DOCKER_PASSWORD | sudo docker login -u $DOCKER_USERNAME --password-stdin
+                            sudo docker push $DOCKER_IMAGE:$DOCKER_TAG
+                            sudo docker rmi $DOCKER_IMAGE:$DOCKER_TAG
+                        '''
                     }
                 }
             }
         }
     }
-
+    
     post {
         success {
-            echo "Docker image pushed to Docker Hub successfully."
+            echo 'Successfully built and pushed Docker image!'
         }
         failure {
-            echo "Failed to build or push Docker image."
+            echo 'Failed to build or push Docker image.'
+        }
+        always {
+            // 클린업 작업
+            sh 'sudo docker logout'
         }
     }
 }
