@@ -8,7 +8,7 @@ RUN apk add --no-cache git
 WORKDIR /app
 
 # go.mod와 go.sum 파일을 복사하고 의존성을 다운받음
-COPY go.mod go.sum ./
+COPY go.mod ./
 RUN go mod download
 
 # 소스 코드 복사
