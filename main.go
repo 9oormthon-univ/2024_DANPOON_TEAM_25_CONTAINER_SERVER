@@ -6,8 +6,9 @@ import (
 )
 
 func HealthCheck(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Hello! deployment complete"))
 }
+
 func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health_check", HealthCheck)
