@@ -6,7 +6,7 @@ import (
 )
 
 func HealthCheck(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("jenkins test"))
+	w.Write([]byte("jenkins test2"))
 }
 
 func main() {
