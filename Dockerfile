@@ -24,7 +24,7 @@ FROM alpine:latest
 COPY --from=builder /app/server /app/server
 
 # 실행 포트 설정 (예: 8080)
-EXPOSE 8080
+EXPOSE 8082
 
 # 컨테이너가 시작될 때 실행할 명령어
 CMD ["/app/server"]

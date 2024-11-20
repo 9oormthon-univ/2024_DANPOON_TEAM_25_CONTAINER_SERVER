@@ -13,7 +13,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health_check", HealthCheck)
 	srv := http.Server{
-		Addr:    ":8080",
+		Addr:    ":8082",
 		Handler: mux,
 	}
 	if err := srv.ListenAndServe(); err != nil {
