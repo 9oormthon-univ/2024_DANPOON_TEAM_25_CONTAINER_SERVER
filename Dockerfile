@@ -15,7 +15,7 @@ RUN go mod download
 COPY . .
 
 # Go 애플리케이션 빌드 (최적화를 위해 정적 바이너리로 빌드)
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o server .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o server ./cmd/grpc
 
 # 실행 단계
 FROM alpine:latest
