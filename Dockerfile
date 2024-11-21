@@ -1,7 +1,7 @@
 # 빌드 단계
 FROM golang:1.22-alpine AS builder
 
-RUN apk add --no-cache git
+RUN apk add --no-cache git docker-cli
 
 WORKDIR /app
 
