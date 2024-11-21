@@ -20,7 +20,7 @@ pipeline {
         }
         stage('Clone Repository') {
             steps {
-                git branch: 'main',
+                git branch: 'dev',
                     url: 'https://github.com/9oormthon-univ/2024_DANPOON_TEAM_25_CONTAINER_SERVER.git'
             }
         }
