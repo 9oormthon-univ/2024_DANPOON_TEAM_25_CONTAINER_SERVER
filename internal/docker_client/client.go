@@ -20,9 +20,11 @@ type AuthConfig struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
+
 type DockerClient struct {
 	Client           *client.Client
 	DockerCredential string
+	Username         string
 }
 
 func NewDockerClient() (*DockerClient, error) {
@@ -30,8 +32,9 @@ func NewDockerClient() (*DockerClient, error) {
 	if err != nil {
 		return nil, err
 	}
+	username := os.Getenv("DOCKER_USERNAME")
 	authConfig := AuthConfig{
-		Username: "milkymilky0116",
+		Username: username,
 		Password: os.Getenv("DOCKER_CREDENTIAL"),
 	}
 	authBytes, err := json.Marshal(authConfig)
@@ -39,7 +42,7 @@ func NewDockerClient() (*DockerClient, error) {
 		return nil, err
 	}
 	authEncoded := base64.StdEncoding.EncodeToString(authBytes)
-	return &DockerClient{Client: client, DockerCredential: authEncoded}, nil
+	return &DockerClient{Client: client, DockerCredential: authEncoded, Username: username}, nil
 }
 
 func (d *DockerClient) CreateImage(imageTag string, specs []string, logCallback func(log string)) error {
@@ -56,7 +59,7 @@ func (d *DockerClient) CreateImage(imageTag string, specs []string, logCallback 
 }
 
 func (d *DockerClient) buildImage(tag string, dockerfile string, logCallback func(log string)) error {
-	imageName := fmt.Sprintf("milkymilky0116/ide:%s", tag)
+	imageName := fmt.Sprintf("%s/ide:%s", d.Username, tag)
 	buildContext, err := createDockerfileContext(dockerfile)
 	if err != nil {
 		return err
