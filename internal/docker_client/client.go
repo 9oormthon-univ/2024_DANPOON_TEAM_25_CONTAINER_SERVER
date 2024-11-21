@@ -5,7 +5,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -16,11 +15,6 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 )
-
-type AuthConfig struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
 
 type DockerClient struct {
 	Client           *client.Client
@@ -34,16 +28,9 @@ func NewDockerClient() (*DockerClient, error) {
 		return nil, err
 	}
 	username := os.Getenv("DOCKER_USERNAME")
-	authConfig := AuthConfig{
-		Username: username,
-		Password: os.Getenv("DOCKER_CREDENTIAL"),
-	}
-	authBytes, err := json.Marshal(authConfig)
-	if err != nil {
-		return nil, err
-	}
-	authEncoded := base64.StdEncoding.EncodeToString(authBytes)
-	return &DockerClient{Client: client, DockerCredential: authEncoded, Username: username}, nil
+	password := os.Getenv("DOCKER_CREDENTIAL")
+
+	return &DockerClient{Client: client, DockerCredential: password, Username: username}, nil
 }
 
 func (d *DockerClient) CreateImage(ctx context.Context, imageTag string, specs []string, logCallback func(log string)) error {
@@ -100,8 +87,6 @@ func (d *DockerClient) buildImage(ctx context.Context, imageName string, dockerf
 
 func (d *DockerClient) dockerLogin(ctx context.Context) error {
 	// echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
-	log.Println(d.Username)
-	log.Println(d.DockerCredential)
 	cmd := exec.CommandContext(ctx, "echo", d.DockerCredential, "docker", "login", "-u", d.Username, "--password-stdin")
 	if err := cmd.Start(); err != nil {
 		return err
