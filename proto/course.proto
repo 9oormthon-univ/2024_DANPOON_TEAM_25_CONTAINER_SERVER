@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package course;
+
+option go_package = "github.com/9oormthon-univ/2024_DANPOON_TEAM_25_CONTAINER_SERVER/proto/gen/proto";
+
+service CourseIDEService {
+  rpc Create (CourseIDECreateRequest) returns (stream CourseIDECreateResponse);
+}
+
+message CourseIDECreateRequest {
+  string student_id = 1;
+  string course_id = 2;
+  repeated string spec = 3;
+}
+
+message CourseIDECreateResponse {
+  string message = 1;
+  bool ok = 2;
+}
+
+
