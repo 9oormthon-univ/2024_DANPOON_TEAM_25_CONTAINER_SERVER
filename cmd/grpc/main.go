@@ -27,7 +27,7 @@ func NewServer() (*server, error) {
 	return &server{Client: dockerClient}, nil
 }
 
-func (s *server) Create(req *pb.CourseIDECreateRequest, stream pb.CourseIDEService_CreateServer) error {
+func (s *server) CreateImage(req *pb.CourseIDECreateRequest, stream pb.CourseIDEService_CreateImageServer) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*10)
 	defer cancel()
 	imageTag := fmt.Sprintf("user%scourse%s", req.StudentId, req.CourseId)
@@ -41,6 +41,10 @@ func (s *server) Create(req *pb.CourseIDECreateRequest, stream pb.CourseIDEServi
 		return err
 	}
 	return nil
+}
+
+func (s *server) CreatePod(ctx context.Context, req *pb.PodCreateRequest) (*pb.PodCreateResponse, error) {
+	return nil, nil
 }
 
 func main() {

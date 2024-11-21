@@ -5,7 +5,8 @@ package course;
 option go_package = "github.com/9oormthon-univ/2024_DANPOON_TEAM_25_CONTAINER_SERVER/proto/gen/proto";
 
 service CourseIDEService {
-  rpc Create (CourseIDECreateRequest) returns (stream CourseIDECreateResponse);
+  rpc CreateImage (CourseIDECreateRequest) returns (stream CourseIDECreateResponse);
+  rpc CreatePod (PodCreateRequest)  returns (PodCreateResponse);
 }
 
 message CourseIDECreateRequest {
@@ -19,4 +20,11 @@ message CourseIDECreateResponse {
   bool ok = 2;
 }
 
+message PodCreateRequest {
+  string student_id = 1;
+  string course_id = 2;
+}
 
+message PodCreateResponse {
+  bool ok = 1;
+}

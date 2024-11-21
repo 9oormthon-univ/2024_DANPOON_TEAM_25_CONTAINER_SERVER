@@ -19,14 +19,16 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	CourseIDEService_Create_FullMethodName = "/course.CourseIDEService/Create"
+	CourseIDEService_CreateImage_FullMethodName = "/course.CourseIDEService/CreateImage"
+	CourseIDEService_CreatePod_FullMethodName   = "/course.CourseIDEService/CreatePod"
 )
 
 // CourseIDEServiceClient is the client API for CourseIDEService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type CourseIDEServiceClient interface {
-	Create(ctx context.Context, in *CourseIDECreateRequest, opts ...grpc.CallOption) (CourseIDEService_CreateClient, error)
+	CreateImage(ctx context.Context, in *CourseIDECreateRequest, opts ...grpc.CallOption) (CourseIDEService_CreateImageClient, error)
+	CreatePod(ctx context.Context, in *PodCreateRequest, opts ...grpc.CallOption) (*PodCreateResponse, error)
 }
 
 type courseIDEServiceClient struct {
@@ -37,12 +39,12 @@ func NewCourseIDEServiceClient(cc grpc.ClientConnInterface) CourseIDEServiceClie
 	return &courseIDEServiceClient{cc}
 }
 
-func (c *courseIDEServiceClient) Create(ctx context.Context, in *CourseIDECreateRequest, opts ...grpc.CallOption) (CourseIDEService_CreateClient, error) {
-	stream, err := c.cc.NewStream(ctx, &CourseIDEService_ServiceDesc.Streams[0], CourseIDEService_Create_FullMethodName, opts...)
+func (c *courseIDEServiceClient) CreateImage(ctx context.Context, in *CourseIDECreateRequest, opts ...grpc.CallOption) (CourseIDEService_CreateImageClient, error) {
+	stream, err := c.cc.NewStream(ctx, &CourseIDEService_ServiceDesc.Streams[0], CourseIDEService_CreateImage_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &courseIDEServiceCreateClient{stream}
+	x := &courseIDEServiceCreateImageClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -52,16 +54,16 @@ func (c *courseIDEServiceClient) Create(ctx context.Context, in *CourseIDECreate
 	return x, nil
 }
 
-type CourseIDEService_CreateClient interface {
+type CourseIDEService_CreateImageClient interface {
 	Recv() (*CourseIDECreateResponse, error)
 	grpc.ClientStream
 }
 
-type courseIDEServiceCreateClient struct {
+type courseIDEServiceCreateImageClient struct {
 	grpc.ClientStream
 }
 
-func (x *courseIDEServiceCreateClient) Recv() (*CourseIDECreateResponse, error) {
+func (x *courseIDEServiceCreateImageClient) Recv() (*CourseIDECreateResponse, error) {
 	m := new(CourseIDECreateResponse)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -69,11 +71,21 @@ func (x *courseIDEServiceCreateClient) Recv() (*CourseIDECreateResponse, error) 
 	return m, nil
 }
 
+func (c *courseIDEServiceClient) CreatePod(ctx context.Context, in *PodCreateRequest, opts ...grpc.CallOption) (*PodCreateResponse, error) {
+	out := new(PodCreateResponse)
+	err := c.cc.Invoke(ctx, CourseIDEService_CreatePod_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CourseIDEServiceServer is the server API for CourseIDEService service.
 // All implementations must embed UnimplementedCourseIDEServiceServer
 // for forward compatibility
 type CourseIDEServiceServer interface {
-	Create(*CourseIDECreateRequest, CourseIDEService_CreateServer) error
+	CreateImage(*CourseIDECreateRequest, CourseIDEService_CreateImageServer) error
+	CreatePod(context.Context, *PodCreateRequest) (*PodCreateResponse, error)
 	mustEmbedUnimplementedCourseIDEServiceServer()
 }
 
@@ -81,8 +93,11 @@ type CourseIDEServiceServer interface {
 type UnimplementedCourseIDEServiceServer struct {
 }
 
-func (UnimplementedCourseIDEServiceServer) Create(*CourseIDECreateRequest, CourseIDEService_CreateServer) error {
-	return status.Errorf(codes.Unimplemented, "method Create not implemented")
+func (UnimplementedCourseIDEServiceServer) CreateImage(*CourseIDECreateRequest, CourseIDEService_CreateImageServer) error {
+	return status.Errorf(codes.Unimplemented, "method CreateImage not implemented")
+}
+func (UnimplementedCourseIDEServiceServer) CreatePod(context.Context, *PodCreateRequest) (*PodCreateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreatePod not implemented")
 }
 func (UnimplementedCourseIDEServiceServer) mustEmbedUnimplementedCourseIDEServiceServer() {}
 
@@ -97,25 +112,43 @@ func RegisterCourseIDEServiceServer(s grpc.ServiceRegistrar, srv CourseIDEServic
 	s.RegisterService(&CourseIDEService_ServiceDesc, srv)
 }
 
-func _CourseIDEService_Create_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _CourseIDEService_CreateImage_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(CourseIDECreateRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(CourseIDEServiceServer).Create(m, &courseIDEServiceCreateServer{stream})
+	return srv.(CourseIDEServiceServer).CreateImage(m, &courseIDEServiceCreateImageServer{stream})
 }
 
-type CourseIDEService_CreateServer interface {
+type CourseIDEService_CreateImageServer interface {
 	Send(*CourseIDECreateResponse) error
 	grpc.ServerStream
 }
 
-type courseIDEServiceCreateServer struct {
+type courseIDEServiceCreateImageServer struct {
 	grpc.ServerStream
 }
 
-func (x *courseIDEServiceCreateServer) Send(m *CourseIDECreateResponse) error {
+func (x *courseIDEServiceCreateImageServer) Send(m *CourseIDECreateResponse) error {
 	return x.ServerStream.SendMsg(m)
+}
+
+func _CourseIDEService_CreatePod_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PodCreateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CourseIDEServiceServer).CreatePod(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CourseIDEService_CreatePod_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CourseIDEServiceServer).CreatePod(ctx, req.(*PodCreateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 // CourseIDEService_ServiceDesc is the grpc.ServiceDesc for CourseIDEService service.
@@ -124,11 +157,16 @@ func (x *courseIDEServiceCreateServer) Send(m *CourseIDECreateResponse) error {
 var CourseIDEService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "course.CourseIDEService",
 	HandlerType: (*CourseIDEServiceServer)(nil),
-	Methods:     []grpc.MethodDesc{},
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "CreatePod",
+			Handler:    _CourseIDEService_CreatePod_Handler,
+		},
+	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "Create",
-			Handler:       _CourseIDEService_Create_Handler,
+			StreamName:    "CreateImage",
+			Handler:       _CourseIDEService_CreateImage_Handler,
 			ServerStreams: true,
 		},
 	},
