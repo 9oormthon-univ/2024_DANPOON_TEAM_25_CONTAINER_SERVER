@@ -9,7 +9,9 @@ service CourseIDEService {
 }
 
 message CourseIDECreateRequest {
-  repeated string spec = 1;
+  string student_id = 1;
+  string course_id = 2;
+  repeated string spec = 3;
 }
 
 message CourseIDECreateResponse {

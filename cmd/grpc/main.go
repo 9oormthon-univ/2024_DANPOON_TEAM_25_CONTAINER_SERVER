@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/base64"
+	"fmt"
 	"log"
 	"net"
 
@@ -24,7 +26,9 @@ func NewServer() (*server, error) {
 }
 
 func (s *server) Create(req *pb.CourseIDECreateRequest, stream pb.CourseIDEService_CreateServer) error {
-	err := s.Client.CreateImage("test", req.Spec, func(logMessage string) {
+	imageTag := fmt.Sprintf("user%scourse%s", req.StudentId, req.CourseId)
+	encodedTag := base64.StdEncoding.EncodeToString([]byte(imageTag))
+	err := s.Client.CreateImage(encodedTag, req.Spec, func(logMessage string) {
 		if err := stream.Send(&pb.CourseIDECreateResponse{Message: logMessage, Ok: false}); err != nil {
 			log.Printf("Fail to stream log: %v", err)
 		}
