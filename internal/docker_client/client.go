@@ -46,8 +46,8 @@ func NewDockerClient() (*DockerClient, error) {
 }
 
 func (d *DockerClient) CreateImage(ctx context.Context, imageTag string, specs []string, logCallback func(log string)) error {
-
 	imageName := fmt.Sprintf("%s/ide:%s", d.Username, imageTag)
+	log.Println(imageName)
 	dockerfileSpec := ""
 	for _, spec := range specs {
 		dockerfileSpec += fmt.Sprintf("nixpkgs.%s ", spec)

@@ -56,7 +56,7 @@ func main() {
 	pb.RegisterCourseIDEServiceServer(grpcServer, server)
 
 	reflection.Register(grpcServer)
-
+	log.Println("Server running on port 50051")
 	if err := grpcServer.Serve(listener); err != nil {
 		log.Fatalf("Fail to serve: %v", err)
 	}
