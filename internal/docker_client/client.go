@@ -100,7 +100,8 @@ func (d *DockerClient) buildImage(ctx context.Context, imageName string, dockerf
 
 func (d *DockerClient) dockerLogin(ctx context.Context) error {
 	// echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
-
+	log.Println(d.Username)
+	log.Println(d.DockerCredential)
 	cmd := exec.CommandContext(ctx, "echo", d.DockerCredential, "docker", "login", "-u", d.Username, "--password-stdin")
 	if err := cmd.Start(); err != nil {
 		return err
