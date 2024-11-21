@@ -22,4 +22,4 @@ RUN chmod +x /entrypoint.sh
 
 EXPOSE 50051
 
-CMD ["/app/server"]
+CMD ["/bin/sh", "/entrypoint.sh"]
