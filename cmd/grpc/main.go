@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"log"
 	"net"
+	"time"
 
 	dockerclient "github.com/9oormthon-univ/2024_DANPOON_TEAM_25_CONTAINER_SERVER/internal/docker_client"
 	pb "github.com/9oormthon-univ/2024_DANPOON_TEAM_25_CONTAINER_SERVER/proto/gen/proto"
@@ -26,14 +28,16 @@ func NewServer() (*server, error) {
 }
 
 func (s *server) Create(req *pb.CourseIDECreateRequest, stream pb.CourseIDEService_CreateServer) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*10)
+	defer cancel()
 	imageTag := fmt.Sprintf("user%scourse%s", req.StudentId, req.CourseId)
 	encodedTag := base64.StdEncoding.EncodeToString([]byte(imageTag))
-	err := s.Client.CreateImage(encodedTag, req.Spec, func(logMessage string) {
+	err := s.Client.CreateImage(ctx, encodedTag, req.Spec, func(logMessage string) {
 		if err := stream.Send(&pb.CourseIDECreateResponse{Message: logMessage, Ok: false}); err != nil {
-			log.Printf("Fail to stream log: %v", err)
 		}
 	})
 	if err != nil {
+		log.Printf("Build Image error: %v", err)
 		return err
 	}
 	return nil

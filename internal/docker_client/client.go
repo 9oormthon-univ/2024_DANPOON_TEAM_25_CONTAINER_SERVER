@@ -45,21 +45,26 @@ func NewDockerClient() (*DockerClient, error) {
 	return &DockerClient{Client: client, DockerCredential: authEncoded, Username: username}, nil
 }
 
-func (d *DockerClient) CreateImage(imageTag string, specs []string, logCallback func(log string)) error {
+func (d *DockerClient) CreateImage(ctx context.Context, imageTag string, specs []string, logCallback func(log string)) error {
+
+	imageName := fmt.Sprintf("%s/ide:%s", d.Username, imageTag)
 	dockerfileSpec := ""
 	for _, spec := range specs {
 		dockerfileSpec += fmt.Sprintf("nixpkgs.%s ", spec)
 	}
 	dockerfile := fmt.Sprintf(CODESERVER_DOCKERFILE, dockerfileSpec)
-	err := d.buildImage(imageTag, dockerfile, logCallback)
+	err := d.buildImage(ctx, imageName, dockerfile, logCallback)
+	if err != nil {
+		return err
+	}
+	err = d.pushImage(ctx, imageName, logCallback)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (d *DockerClient) buildImage(tag string, dockerfile string, logCallback func(log string)) error {
-	imageName := fmt.Sprintf("%s/ide:%s", d.Username, tag)
+func (d *DockerClient) buildImage(ctx context.Context, imageName string, dockerfile string, logCallback func(log string)) error {
 	buildContext, err := createDockerfileContext(dockerfile)
 	if err != nil {
 		return err
@@ -69,7 +74,6 @@ func (d *DockerClient) buildImage(tag string, dockerfile string, logCallback fun
 		Dockerfile: "Dockerfile",
 		Remove:     true,
 	}
-	ctx := context.Background()
 	buildResponse, err := d.Client.ImageBuild(ctx, buildContext, buildOptions)
 	if err != nil {
 		return err
@@ -90,15 +94,10 @@ func (d *DockerClient) buildImage(tag string, dockerfile string, logCallback fun
 		}
 	}
 	log.Printf("Image %s build successfully", imageName)
-	err = d.pushImage(imageName, logCallback)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
-func (d *DockerClient) pushImage(imageName string, logCallback func(log string)) error {
-	ctx := context.Background()
+func (d *DockerClient) pushImage(ctx context.Context, imageName string, logCallback func(log string)) error {
 	pushResponse, err := d.Client.ImagePush(ctx, imageName, image.PushOptions{
 		RegistryAuth: d.DockerCredential,
 	})
@@ -111,20 +110,23 @@ func (d *DockerClient) pushImage(imageName string, logCallback func(log string))
 	for {
 		var line map[string]interface{}
 		if err := decoder.Decode(&line); err != nil {
+
 			if err == io.EOF {
 				break
 			}
-			return fmt.Errorf("failed to decode push log: %w", err)
+
+			fmt.Printf("error decoding push response: %v\n", err)
 		}
 
 		if errMsg, ok := line["error"].(string); ok {
-			return fmt.Errorf("push failed: %s", errMsg)
+			fmt.Printf("error decoding push response: %v\n", errMsg)
 		}
 
 		if status, ok := line["status"].(string); ok {
 			logCallback(status)
 		}
 	}
+
 	log.Printf("Image %s pushed successfully", imageName)
 	return nil
 }
