@@ -23,7 +23,13 @@ FROM alpine:latest
 # 빌드된 파일 복사
 COPY --from=builder /app/server /app/server
 
-# 실행 포트 설정 (예: 8080)
+# Entrypoint 스크립트 복사
+COPY entrypoint.sh /entrypoint.sh
+
+# Entrypoint 스크립트에 실행 권한 부여
+RUN chmod +x /entrypoint.sh
+
+# 실행 포트 설정 (예: gRPC는 일반적으로 50051 포트를 사용)
 EXPOSE 50051
 
 # 컨테이너가 시작될 때 실행할 명령어
