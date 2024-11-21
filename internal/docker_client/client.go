@@ -2,6 +2,7 @@ package dockerclient
 
 import (
 	"archive/tar"
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/base64"
@@ -10,9 +11,9 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/exec"
 
 	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
 )
 
@@ -97,38 +98,108 @@ func (d *DockerClient) buildImage(ctx context.Context, imageName string, dockerf
 	return nil
 }
 
-func (d *DockerClient) pushImage(ctx context.Context, imageName string, logCallback func(log string)) error {
-	pushResponse, err := d.Client.ImagePush(ctx, imageName, image.PushOptions{
-		RegistryAuth: d.DockerCredential,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to push image: %w", err)
+func (d *DockerClient) dockerLogin(ctx context.Context) error {
+	// echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+
+	cmd := exec.CommandContext(ctx, "echo", d.DockerCredential, "docker", "login", "-u", d.Username, "--password-stdin")
+	if err := cmd.Start(); err != nil {
+		return err
 	}
-	defer pushResponse.Close()
-
-	decoder := json.NewDecoder(pushResponse)
-	for {
-		var line map[string]interface{}
-		if err := decoder.Decode(&line); err != nil {
-
-			if err == io.EOF {
-				break
-			}
-
-			fmt.Printf("error decoding push response: %v\n", err)
-		}
-
-		if errMsg, ok := line["error"].(string); ok {
-			fmt.Printf("error decoding push response: %v\n", errMsg)
-		}
-
-		if status, ok := line["status"].(string); ok {
-			logCallback(status)
-		}
-	}
-
-	log.Printf("Image %s pushed successfully", imageName)
 	return nil
+}
+func (d *DockerClient) pushImage(ctx context.Context, imageName string, logCallback func(log string)) error {
+	err := d.dockerLogin(ctx)
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.CommandContext(ctx, "docker", "push", imageName)
+
+	stdoutPipe, err := cmd.StdoutPipe()
+	if err != nil {
+		return fmt.Errorf("failed to get stdout pipe: %w", err)
+	}
+
+	stderrPipe, err := cmd.StderrPipe()
+	if err != nil {
+		return fmt.Errorf("failed to get stderr pipe: %w", err)
+	}
+
+	// Start the docker push command
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("failed to start docker push command: %w", err)
+	}
+
+	// Channels to receive stdout and stderr lines
+	outputChan := make(chan string)
+	errorChan := make(chan string)
+	doneChan := make(chan struct{})
+
+	// Function to read from a pipe and send lines to a channel
+	readPipe := func(pipe io.ReadCloser, outChan chan<- string) {
+		defer close(outChan)
+		scanner := bufio.NewScanner(pipe)
+		for scanner.Scan() {
+			outChan <- scanner.Text()
+		}
+		if err := scanner.Err(); err != nil {
+			log.Printf("error reading pipe: %v", err)
+		}
+	}
+
+	go readPipe(stdoutPipe, outputChan)
+	go readPipe(stderrPipe, errorChan)
+
+	go func() {
+		cmd.Wait()
+		close(doneChan)
+	}()
+
+	for {
+		select {
+		case line, ok := <-outputChan:
+			if ok {
+				processPushOutput(line, logCallback)
+			}
+		case line, ok := <-errorChan:
+			if ok {
+				processPushOutput(line, logCallback)
+			}
+		case <-doneChan:
+			if ctx.Err() == context.DeadlineExceeded {
+				return fmt.Errorf("docker push timed out")
+			}
+			if err := cmd.ProcessState.ExitCode(); err != 0 {
+				return fmt.Errorf("docker push failed with exit code %d", cmd.ProcessState.ExitCode())
+			}
+			log.Printf("Image %s pushed successfully", imageName)
+			return nil
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+}
+
+func processPushOutput(line string, logCallback func(log string)) {
+	var jsonLine map[string]interface{}
+	if err := json.Unmarshal([]byte(line), &jsonLine); err == nil {
+		if errMsg, ok := jsonLine["error"].(string); ok {
+			logCallback(fmt.Sprintf("Error: %s", errMsg))
+			return
+		}
+		if status, ok := jsonLine["status"].(string); ok {
+			var logMsg string
+			if progress, ok := jsonLine["progress"].(string); ok {
+				logMsg = fmt.Sprintf("%s %s", status, progress)
+			} else {
+				logMsg = status
+			}
+			logCallback(logMsg)
+			return
+		}
+	} else {
+		logCallback(line)
+	}
 }
 
 func createDockerfileContext(dockerfile string) (io.Reader, error) {
