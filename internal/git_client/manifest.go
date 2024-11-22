@@ -4,23 +4,23 @@ const DEPLOYMENT_MANIFEST = `---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-	name: ide:%s
+	name: ide-%s
   namespace: ide
   labels:
-		app: ide:%s
+		app: ide-%s
 spec:
   replicas: 1
   selector:
     matchLabels:
-			app: ide:%s
+			app: ide-%s
   template:
     metadata:
       labels:
-				app: ide:%s
+				app: ide-%s
     spec:
       containers:
-				- name: ide:%s
-          image: %s
+				- name: ide-%s
+					image: milkymilky0116/ide:%s
           ports:
             - containerPort: 8080
           resources:
@@ -47,12 +47,12 @@ const SERVICE_MANIFEST = `
 apiVersion: v1
 kind: Service
 metadata:
-	name: ide:%s
+	name: ide-%s
   namespace: ide
 spec:
   type: NodePort
   selector:
-    app: ide%s
+    app: ide-%s
   ports:
     - port: 8080
       targetPort: 8080
