@@ -78,3 +78,37 @@ spec:
   tls:
     certResolver: myresolver
 `
+
+const APPLICATION_MANIFEST = `---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ide-user%scourse%s
+  namespace: argocd
+  annotations:
+    notifications.argoproj.io/subscribe.on-sync-succeeded: "true"
+    notifications.argoproj.io/subscribe.on-sync-failed: "true"
+spec:
+  project: default
+  source:
+    repoURL: "https://github.com/9oormthon-univ/2024_DANPOON_TEAM_25_MANIFEST"
+    path: "ide-user%scourse%s"
+    targetRevision: main
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: ide
+  syncPolicy:
+    automated:
+      prune: true # 더 이상 필요없는 리소스 자동 제거
+      selfHeal: true # 직접 변경된 리소스 자동 복구
+      allowEmpty: false # 빈 디렉토리 배포 방지
+    syncOptions:
+      - CreateNamespace=true # 네임스페이스 자동 생성
+      - PrunePropagationPolicy=foreground # 리소스 삭제 시 종속성 고려
+      - PruneLast=true # 새 리소스 생성 후 이전 리소스 제거
+    retry:
+      limit: 5 # 동기화 실패 시 재시도 횟수
+      backoff:
+        duration: 5s # 초기 대기 시간
+        factor: 2 # 재시도 간격 증가 비율
+`

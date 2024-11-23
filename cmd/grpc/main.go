@@ -49,6 +49,7 @@ func (s *server) CreateImage(req *pb.CourseIDECreateRequest, stream pb.CourseIDE
 func (s *server) CreatePod(ctx context.Context, req *pb.PodCreateRequest) (*pb.PodCreateResponse, error) {
 	err := s.GitClient.ModifyRepository(req.CourseId, req.StudentId)
 	if err != nil {
+		log.Printf("Create Pod Error: %v", err)
 		return nil, err
 	}
 	return &pb.PodCreateResponse{Ok: true}, nil

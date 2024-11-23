@@ -9,10 +9,7 @@ import (
 func TestModifyRepository(t *testing.T) {
 	// Setup environment variables
 	gitClient := NewGitClient()
-	testKey := "dXNlcjFjb3Vyc2Ux"
-
 	// Create manifests using test key
-	err := gitClient.ModifyRepository(testKey)
+	err := gitClient.ModifyRepository("1", "1")
 	assert.NoError(t, err, "ModifyRepository should not return an error")
-
 }

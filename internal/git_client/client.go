@@ -1,6 +1,7 @@
 package gitclient
 
 import (
+	"bytes"
 	"encoding/base64"
 	"fmt"
 	"log"
@@ -12,6 +13,7 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	githttp "github.com/go-git/go-git/v5/plumbing/transport/http"
+	"golang.org/x/crypto/ssh"
 )
 
 const REPO_URL = "https://github.com/9oormthon-univ/2024_DANPOON_TEAM_25_MANIFEST.git"
@@ -40,8 +42,7 @@ func NewGitClient() *Gitclient {
 
 func (g *Gitclient) ModifyRepository(courseID, studentID string) error {
 	imageTag := fmt.Sprintf("course%s", courseID)
-	encodedImageTag := base64.StdEncoding.EncodeToString([]byte(imageTag))
-
+	encodedImageTag := base64.RawURLEncoding.EncodeToString([]byte(imageTag))
 	ideTag := fmt.Sprintf("user%scourse%s", studentID, courseID)
 	repo, err := git.PlainClone(util.GetPath(CLONE_DIR), false, &git.CloneOptions{
 		URL:      REPO_URL,
@@ -49,6 +50,7 @@ func (g *Gitclient) ModifyRepository(courseID, studentID string) error {
 		Auth:     g.Auth,
 	})
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 	worktree, err := repo.Worktree()
@@ -56,7 +58,7 @@ func (g *Gitclient) ModifyRepository(courseID, studentID string) error {
 		return err
 	}
 
-	appFilePath := filepath.Join(util.GetPath(CLONE_DIR), fmt.Sprintf("ide.%s", ideTag))
+	appFilePath := filepath.Join(util.GetPath(CLONE_DIR), fmt.Sprintf("ide-%s", ideTag))
 	err = os.Mkdir(appFilePath, os.FileMode(0777))
 	if err != nil {
 		return err
@@ -84,6 +86,15 @@ func (g *Gitclient) ModifyRepository(courseID, studentID string) error {
 		return err
 	}
 	_, err = file.WriteString(ingressRouteYaml)
+	if err != nil {
+		return err
+	}
+	applicationYaml := fmt.Sprintf(APPLICATION_MANIFEST, studentID, courseID, studentID, courseID)
+	applicationFile, err := os.OpenFile(fmt.Sprintf("%s/application.yaml", util.GetPath(CLONE_DIR)), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	_, err = applicationFile.WriteString(applicationYaml)
 	if err != nil {
 		return err
 	}
@@ -116,6 +127,41 @@ func (g *Gitclient) ModifyRepository(courseID, studentID string) error {
 	err = os.RemoveAll(util.GetPath(CLONE_DIR))
 	if err != nil {
 		return err
+	}
+
+	server := "213.190.4.144:22"
+	username := "root"
+	password := "Flakeide123!" // 키를 사용하는 경우는 비워두세요.
+
+	config := &ssh.ClientConfig{
+		User: username,
+		Auth: []ssh.AuthMethod{
+			ssh.Password(password)},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey()}
+
+	client, err := ssh.Dial("tcp", server, config)
+	if err != nil {
+		log.Fatalf("Failed to dial: %s", err)
+	}
+	defer client.Close()
+
+	session, err := client.NewSession()
+	if err != nil {
+		log.Fatalf("Failed to create session: %s", err)
+	}
+	defer session.Close()
+
+	var stdout, stderr bytes.Buffer
+	session.Stdout = &stdout
+	session.Stderr = &stderr
+	command := "cd 2024_DANPOON_TEAM_25_MANIFEST && git pull origin main && kubectl apply -f application.yaml"
+	if err := session.Run(command); err != nil {
+		log.Fatalf("Failed to run command: %s", err)
+	}
+
+	fmt.Printf("Output:\n%s", stdout.String())
+	if stderr.Len() > 0 {
+		fmt.Printf("Error Output:\n%s", stderr.String())
 	}
 	return nil
 }
