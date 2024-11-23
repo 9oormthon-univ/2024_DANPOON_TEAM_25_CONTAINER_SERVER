@@ -9,6 +9,7 @@ import (
 	"time"
 
 	dockerclient "github.com/9oormthon-univ/2024_DANPOON_TEAM_25_CONTAINER_SERVER/internal/docker_client"
+	gitclient "github.com/9oormthon-univ/2024_DANPOON_TEAM_25_CONTAINER_SERVER/internal/git_client"
 	pb "github.com/9oormthon-univ/2024_DANPOON_TEAM_25_CONTAINER_SERVER/proto/gen/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -16,7 +17,8 @@ import (
 
 type server struct {
 	pb.UnimplementedCourseIDEServiceServer
-	Client *dockerclient.DockerClient
+	DockerClient *dockerclient.DockerClient
+	GitClient    *gitclient.Gitclient
 }
 
 func NewServer() (*server, error) {
@@ -24,15 +26,16 @@ func NewServer() (*server, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &server{Client: dockerClient}, nil
+	gitClient := gitclient.NewGitClient()
+	return &server{DockerClient: dockerClient, GitClient: gitClient}, nil
 }
 
 func (s *server) CreateImage(req *pb.CourseIDECreateRequest, stream pb.CourseIDEService_CreateImageServer) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*10)
 	defer cancel()
-	imageTag := fmt.Sprintf("user%scourse%s", req.StudentId, req.CourseId)
+	imageTag := fmt.Sprintf("course%s", req.CourseId)
 	encodedTag := base64.StdEncoding.EncodeToString([]byte(imageTag))
-	err := s.Client.CreateImage(ctx, encodedTag, req.Spec, func(logMessage string) {
+	err := s.DockerClient.CreateImage(ctx, encodedTag, req.Spec, func(logMessage string) {
 		if err := stream.Send(&pb.CourseIDECreateResponse{Message: logMessage, Ok: false}); err != nil {
 		}
 	})
@@ -44,7 +47,11 @@ func (s *server) CreateImage(req *pb.CourseIDECreateRequest, stream pb.CourseIDE
 }
 
 func (s *server) CreatePod(ctx context.Context, req *pb.PodCreateRequest) (*pb.PodCreateResponse, error) {
-	return nil, nil
+	err := s.GitClient.ModifyRepository(req.CourseId, req.StudentId)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.PodCreateResponse{Ok: true}, nil
 }
 
 func main() {

@@ -38,7 +38,11 @@ func NewGitClient() *Gitclient {
 	return &Gitclient{Auth: NewAuth()}
 }
 
-func (g *Gitclient) ModifyRepository(key string) error {
+func (g *Gitclient) ModifyRepository(courseID, studentID string) error {
+	imageTag := fmt.Sprintf("course%s", courseID)
+	encodedImageTag := base64.StdEncoding.EncodeToString([]byte(imageTag))
+
+	ideTag := fmt.Sprintf("user%scourse%s", studentID, courseID)
 	repo, err := git.PlainClone(util.GetPath(CLONE_DIR), false, &git.CloneOptions{
 		URL:      REPO_URL,
 		Progress: os.Stdout,
@@ -52,26 +56,20 @@ func (g *Gitclient) ModifyRepository(key string) error {
 		return err
 	}
 
-	decodedBytes, err := base64.StdEncoding.DecodeString(key)
-	if err != nil {
-		return err
-	}
-	decodedKey := string(decodedBytes)
-	log.Println(decodedKey)
-	appFilePath := filepath.Join(util.GetPath(CLONE_DIR), fmt.Sprintf("ide.%s", decodedKey))
+	appFilePath := filepath.Join(util.GetPath(CLONE_DIR), fmt.Sprintf("ide.%s", ideTag))
 	err = os.Mkdir(appFilePath, os.FileMode(0777))
 	if err != nil {
 		return err
 	}
 
-	deploymentYaml := fmt.Sprintf(DEPLOYMENT_MANIFEST, decodedKey, decodedKey, decodedKey, decodedKey, decodedKey, key)
+	deploymentYaml := fmt.Sprintf(DEPLOYMENT_MANIFEST, ideTag, ideTag, ideTag, ideTag, ideTag, encodedImageTag)
 	err = os.WriteFile(fmt.Sprintf("%s/deployment.yaml", appFilePath), []byte(deploymentYaml), 0644)
 	if err != nil {
 		return err
 	}
 	fmt.Printf("Deployment 파일 생성 완료: %s\n", appFilePath)
 
-	serviceYaml := fmt.Sprintf(SERVICE_MANIFEST, decodedKey, decodedKey)
+	serviceYaml := fmt.Sprintf(SERVICE_MANIFEST, ideTag, ideTag)
 	err = os.WriteFile(fmt.Sprintf("%s/service.yaml", appFilePath), []byte(serviceYaml), 0644)
 	if err != nil {
 		return err
@@ -79,7 +77,7 @@ func (g *Gitclient) ModifyRepository(key string) error {
 	fmt.Printf("Service 파일 생성 완료: %s\n", appFilePath)
 
 	//TODO: Ingress Route 추가
-	ingressRouteYaml := fmt.Sprintf(INGRESS_ROUTE_MANIFEST, decodedKey, fmt.Sprintf("`%s.flakeide.com`", key), decodedKey)
+	ingressRouteYaml := fmt.Sprintf(INGRESS_ROUTE_MANIFEST, ideTag, fmt.Sprintf("`%s.flakeide.com`", encodedImageTag), ideTag)
 	ingressRoutePath := filepath.Join(util.GetPath(CLONE_DIR), "traefik")
 	file, err := os.OpenFile(fmt.Sprintf("%s/ingress-routes.yaml", ingressRoutePath), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -96,7 +94,7 @@ func (g *Gitclient) ModifyRepository(key string) error {
 		log.Fatalf("파일 추가 실패: %v", err)
 	}
 	fmt.Println("파일 Git에 추가 완료.")
-	commit, err := worktree.Commit(fmt.Sprintf("bot: create ide-%s space", decodedKey), &git.CommitOptions{
+	commit, err := worktree.Commit(fmt.Sprintf("bot: create ide-%s space", ideTag), &git.CommitOptions{
 		Author: &object.Signature{
 			Name:  os.Getenv("GITHUB_NAME"),
 			Email: os.Getenv("GITHUB_EMAIL"),
