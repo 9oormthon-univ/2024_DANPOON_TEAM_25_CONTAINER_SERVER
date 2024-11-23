@@ -96,7 +96,7 @@ func (g *Gitclient) ModifyRepository(key string) error {
 		log.Fatalf("파일 추가 실패: %v", err)
 	}
 	fmt.Println("파일 Git에 추가 완료.")
-	commit, err := worktree.Commit("bot: create ide.%s space", &git.CommitOptions{
+	commit, err := worktree.Commit(fmt.Sprintf("bot: create ide-%s space", decodedKey), &git.CommitOptions{
 		Author: &object.Signature{
 			Name:  os.Getenv("GITHUB_NAME"),
 			Email: os.Getenv("GITHUB_EMAIL"),
