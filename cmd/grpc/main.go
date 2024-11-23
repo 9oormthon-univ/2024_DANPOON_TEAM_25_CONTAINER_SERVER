@@ -34,7 +34,7 @@ func (s *server) CreateImage(req *pb.CourseIDECreateRequest, stream pb.CourseIDE
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*10)
 	defer cancel()
 	imageTag := fmt.Sprintf("course%s", req.CourseId)
-	encodedTag := base64.StdEncoding.EncodeToString([]byte(imageTag))
+	encodedTag := base64.RawURLEncoding.EncodeToString([]byte(imageTag))
 	err := s.DockerClient.CreateImage(ctx, encodedTag, req.Spec, func(logMessage string) {
 		if err := stream.Send(&pb.CourseIDECreateResponse{Message: logMessage, Ok: false}); err != nil {
 		}
